@@ -5,6 +5,7 @@ import { verifyAge } from "./function";
 import * as allTypes from "./types";
 
 const app = express();
+const regexBR = new RegExp(/^(((0[1-9]|[12]\d|3[01])\/(0[13578]|1[02])\/((19|[2-9]\d)\d{2}))|((0[1-9]|[12]\d|30)\/(0[13456789]|1[012])\/((19|[2-9]\d)\d{2}))|((0[1-9]|1\d|2[0-8])\/02\/((19|[2-9]\d)\d{2}))|(29\/02\/((1[6-9]|[2-9]\d)(0[48]|[2468][048]|[13579][26])|(([1][26]|[2468][048]|[3579][26])00))))$/g);
 
 app.use(express.json());
 app.use(cors());
@@ -77,7 +78,134 @@ app.post("/criarConta", (req: Request, res: Response) => {
     } catch (error: any) {
       res.status(errorCode).send(error.message);
     }
-  });
+});
+
+app.post("/clients/transfer",(req:Request, res:Response)=>{
+    const {name, cpf, nameToTransfer, cpfToTransfer, value} = req.body
+    
+    const clientAccount = data.clients.filter((client)=>{
+        return client.name === name && client.cpf === cpf
+    })
+
+    const clientToTransf = data.clients.filter((client)=>{
+        return client.name === nameToTransfer && client.cpf === cpfToTransfer
+    })
+
+    for(let client of clientAccount){
+        client.balance = client.balance - value
+    }
+
+    for(let client of clientToTransf){
+        client.balance = client.balance + value
+    }
+
+    res.send(`Valor de ${value} foi transferido com sucesso para o cliente ${clientToTransf[0].name}`)
+});
+
+app.post("/cliente/pagarConta", (req:Request, res:Response) => {
+    let errorCode = 400;
+    try {
+        const cpf = req.query.cpf as string;
+        const {value, description, date} = req.body;
+        const verificarData = regexBR.test(date);
+        
+        if(!cpf){
+            errorCode = 422;
+            throw new Error("Passe o cpf do usuario no headers");
+        } else if(!value || !description ){
+            errorCode = 422;
+            throw new Error("Informaçoes faltando, por favor, digite o valor e a descrição ");
+        } else if(typeof(value) !== "number"){
+            errorCode = 422;
+            throw new Error("Digite o valor da conta em numeros");
+        };
+    
+        const procurarUsuario = data.clients.find( cliente => cliente.cpf === cpf);
+
+        if(!procurarUsuario){
+            errorCode = 404;
+            throw new Error("Digite o cpf do usuario ");
+        } else if(procurarUsuario.balance < value){
+            errorCode = 423;
+            throw new Error("Saldo insuficiente!")
+        };
+        const dataAtual = new Date()
+        const dia = dataAtual.getDate();
+        const mes = dataAtual.getMonth() + 1;
+        const ano = dataAtual.getFullYear();
+        if(!date || date.length === 0){ // se não passar uma data, o saldo ja é descontado e a conta ja é paga
+            let novoGasto:allTypes.TypeExtract = {
+                value: value,
+                description: description,
+            date: `${dia}/${mes}/${ano}`
+            };
+            data.clients.map( (user) => {
+            if(user.cpf === cpf){
+                let novoSaldo = user.balance - value;
+                user.balance = novoSaldo;
+                user.extract.push(novoGasto)
+            }
+            });
+        } else if(date){
+            const validacaoDeData = () => { 
+            if(!verificarData){ 
+            errorCode = 422;
+            throw new Error("Formato de data incorreto!");
+            } 
+            let d = Number(date.split("/")[0]); // pega o dia da data
+            let m = Number(date.split("/")[1]); // o mes da data
+            let a = Number(date.split("/")[2]); // o ano da data
+            
+            if(a < ano){ // Verificação do ano
+                errorCode = 422;
+                throw new Error("Ano invalido! Passe uma data de hoje em diante")
+            } else if(d < dia && m === mes && a === ano || d < dia && m < mes && a === ano){ // Verificação do dia
+                errorCode = 422;
+                throw new Error("Dia invalido! Passe uma data de hoje em diante") 
+            } else if(d >= dia && m < mes && a === ano){ // Verificação do mes
+                errorCode = 422;
+                throw new Error("Mes invalido! Passe uma data de hoje em diante")
+            } else {
+                let novoGasto:allTypes.TypeExtract = {
+                value: value,
+                description: description,
+                date: date
+                };
+                data.clients.map( (user) => {
+                if(user.cpf === cpf){
+                    user.extract.push(novoGasto)
+                }
+                });
+            }
+            };
+            validacaoDeData();
+            regexBR.test(date);
+        }
+    
+        res.status(201).send(data.clients)
+        } catch(erro: any){
+        res.status(errorCode).send(erro.message);
+        }
+});
+
+app.patch("/clients/addBalance",(req:Request, res:Response)=>{
+    const {name, cpf, value} = req.body
+
+    const clients = data.clients.filter((client)=>{
+        return client.name === name && client.cpf === cpf
+    })
+
+    for(let client of clients){
+        client.balance = client.balance + value
+    }
+
+    res.send(`O valor de R$: ${value} foi adicionado com sucesso...
+    Seu saldo atual é de R$: ${clients[0].balance}`)
+})
+
+app.listen(3003, () => {
+    console.log("Server is running in http://localhost:3003");
+});
 
 /*app.post("/clients/createAccount",(req:Request, res:Response)=>{
     const {name, cpf, date,} = req.body
@@ -147,65 +275,23 @@ app.post("/criarConta", (req: Request, res: Response) => {
     }
 })*/
 
-app.post("/clients/transfer",(req:Request, res:Response)=>{
-    const {name, cpf, nameToTransfer, cpfToTransfer, value} = req.body
+// app.post("/client/payment",(req:Request, res:Response)=>{    
+//     const { name, cpf, value, description, date } = req.body
+
+//     const clients = data.clients.filter((client)=>{
+//         return client.name === name && client.cpf === cpf
+//     })
+//     for(let client of clients){
+//         client.balance -= value
+//     }
+//     data.clients[0].extract.push(
+//         {
+//             value:value,
+//             description:description,
+//             date:date
+//         }
+//     )
+
+//     res.send(clients)
     
-    const clientAccount = data.clients.filter((client)=>{
-        return client.name === name && client.cpf === cpf
-    })
-
-    const clientToTransf = data.clients.filter((client)=>{
-        return client.name === nameToTransfer && client.cpf === cpfToTransfer
-    })
-
-    for(let client of clientAccount){
-        client.balance = client.balance - value
-    }
-
-    for(let client of clientToTransf){
-        client.balance = client.balance + value
-    }
-
-    res.send(`Valor de ${value} foi transferido com sucesso para o cliente ${clientToTransf[0].name}`)
-})
-
-app.post("/client/payment",(req:Request, res:Response)=>{
-    
-    const { name, cpf, value, description, date } = req.body
-
-    const clients = data.clients.filter((client)=>{
-        return client.name === name && client.cpf === cpf
-    })
-    for(let client of clients){
-        client.balance -= value
-    }
-    data.clients[0].extract.push(
-        {
-            value:value,
-            description:description,
-            date:date
-        }
-    )
-
-    res.send(clients)
-    
-})
-
-app.patch("/clients/addBalance",(req:Request, res:Response)=>{
-    const {name, cpf, value} = req.body
-
-    const clients = data.clients.filter((client)=>{
-        return client.name === name && client.cpf === cpf
-    })
-
-    for(let client of clients){
-        client.balance = client.balance + value
-    }
-
-    res.send(`O valor de R$: ${value} foi adicionado com sucesso...
-    Seu saldo atual é de R$: ${clients[0].balance}`)
-})
-
-app.listen(3003, () => {
-    console.log("Server is running in http://localhost:3003");
-});
+// })
