@@ -15,12 +15,12 @@ export type TypeExtract = {
 
 //---------------------------------------------------------------
 export type user = {
-    id: number;
+    idAccount: number;
     name: string;
     cpf: string;
     birthdayDate: string;
     balance: number;
-    statement: changeAccount[];
+    extract: changeAccount[];
   };
   
   type changeAccount = {

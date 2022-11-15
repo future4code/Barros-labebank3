@@ -2,8 +2,7 @@ import express, { Request, Response } from "express";
 import cors from "cors";
 import * as data from "./data"
 import { verifyAge } from "./function";
-import { TypeClients, user } from "./types";
-import {users} from "./data"
+import * as allTypes from "./types";
 
 const app = express();
 
@@ -37,20 +36,20 @@ app.get("/client/balance/cpf/:cpf/name/:name",(req:Request, res:Response)=>{
     }
 })
 
-//Criar Conta
 let errorCode = 422;
 app.post("/criarConta", (req: Request, res: Response) => {
     try {
       const { name, cpf, birthdayDate } = req.body;
   
-      const newUser: user = {
-        id: Date.now(),
-        name,
-        cpf,
-        birthdayDate,
-        balance: 0,
-        statement: [],
-      };
+      const newUser:allTypes.user = {
+        idAccount:Date.now(),
+        name:name,
+        balance:0,
+        birthdayDate:birthdayDate,
+        cpf:cpf,
+        extract:[]
+
+      }
   
       if (!name || !cpf || cpf.length !== 11 || !birthdayDate) {
         errorCode = 400;
@@ -62,18 +61,18 @@ app.post("/criarConta", (req: Request, res: Response) => {
         );
       }
   
-      for (let user of users) {
+      for (let user of data.clients) {
         if (user.cpf === cpf) {
           throw new Error("CPF já cadastro na base de dados");
         }
       }
   
       if (verifyAge(birthdayDate) >= 18) {
-        users.push(newUser);
+        data.clients.push(newUser);
   
         res.status(201).send( "Usuário cadastrado com sucesso!" );
       } else {
-        throw new Error("Cliente não possue idade igual ou superior a 18 anos");
+        throw new Error("Cliente não possui idade igual ou superior a 18 anos");
       }
     } catch (error: any) {
       res.status(errorCode).send(error.message);
