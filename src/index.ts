@@ -1,6 +1,9 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
 import * as data from "./data"
+import { verifyAge } from "./function";
+import { TypeClients, user } from "./types";
+import {users} from "./data"
 
 const app = express();
 
@@ -34,7 +37,50 @@ app.get("/client/balance/cpf/:cpf/name/:name",(req:Request, res:Response)=>{
     }
 })
 
-app.post("/clients/createAccount",(req:Request, res:Response)=>{
+//Criar Conta
+let errorCode = 422;
+app.post("/criarConta", (req: Request, res: Response) => {
+    try {
+      const { name, cpf, birthdayDate } = req.body;
+  
+      const newUser: user = {
+        id: Date.now(),
+        name,
+        cpf,
+        birthdayDate,
+        balance: 0,
+        statement: [],
+      };
+  
+      if (!name || !cpf || cpf.length !== 11 || !birthdayDate) {
+        errorCode = 400;
+        if (cpf.length !== 11) {
+          throw new Error("CPF deve conter 11 números");
+        }
+        throw new Error(
+          "Necessário preencher body com nome, CPF e data de nascimento"
+        );
+      }
+  
+      for (let user of users) {
+        if (user.cpf === cpf) {
+          throw new Error("CPF já cadastro na base de dados");
+        }
+      }
+  
+      if (verifyAge(birthdayDate) >= 18) {
+        users.push(newUser);
+  
+        res.status(201).send( "Usuário cadastrado com sucesso!" );
+      } else {
+        throw new Error("Cliente não possue idade igual ou superior a 18 anos");
+      }
+    } catch (error: any) {
+      res.status(errorCode).send(error.message);
+    }
+  });
+
+/*app.post("/clients/createAccount",(req:Request, res:Response)=>{
     const {name, cpf, date,} = req.body
     
     try{
@@ -100,7 +146,7 @@ app.post("/clients/createAccount",(req:Request, res:Response)=>{
         else if(e.name === "cpfExist"){ res.status(400).send(e.message)}
         else if(e.name === "ageError"){ res.status(400).send(e.message)}
     }
-})
+})*/
 
 app.post("/clients/transfer",(req:Request, res:Response)=>{
     const {name, cpf, nameToTransfer, cpfToTransfer, value} = req.body
