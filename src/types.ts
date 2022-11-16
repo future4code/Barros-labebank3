@@ -21,7 +21,7 @@ export type user = {
     birthdayDate: string;
     balance: number;
     extract: changeAccount[];
-  };
+};
   
   type changeAccount = {
     value: number;

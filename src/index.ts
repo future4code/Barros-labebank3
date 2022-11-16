@@ -149,24 +149,83 @@ app.post("/criarConta", (req: Request, res: Response) => {
 
 app.post("/clients/transfer",(req:Request, res:Response)=>{
     const {name, cpf, nameToTransfer, cpfToTransfer, value} = req.body
+
+    try{
+
+        const nameExist = data.clients.filter((client)=>{
+            return client.name === name
+        })
+
+        const cpfExist = data.clients.filter((client)=>{
+            return client.cpf === cpf
+        })
+        const nameToTransferExist = data.clients.filter((client)=>{
+            return client.cpf === cpf
+        })
+        const cpfToTransferExist = data.clients.filter((client)=>{
+            return client.cpf === cpf
+        })
+
+        if(nameExist.length === 0 || cpfExist.length === 0 || cpfToTransferExist.length === 0 || nameToTransferExist.length === 0){
+            const erro = new Error("cliente nao encontrado...")
+            erro.name = "clientNotFound"
+            throw erro
+        }
+
+        if(!name){
+            const erro = new Error("Insira o nome do Remetente da conta...")
+            erro.name = "nameNotFound"
+            throw erro
+        }
+        
+        if(!cpf){
+            const erro = new Error("Insira o nome do Remetente da conta...")
+            erro.name = "cpfNotFound"
+            throw erro
+        }
+        if(!nameToTransfer){
+            const erro = new Error("Insira o nome do Remetente da conta...")
+            erro.name = "nameToTransferNotFound"
+            throw erro
+        }
+        if(!cpfToTransfer){
+            const erro = new Error("Insira o nome do Remetente da conta...")
+            erro.name = "cpfToTransferNotFound"
+            throw erro
+        }
+        if(!value){
+            const erro = new Error("Insira o nome do Remetente da conta...")
+            erro.name = "valueNotFound"
+            throw erro
+        }
+
+        const clientAccount = data.clients.filter((client)=>{
+            return client.name === name && client.cpf === cpf
+        })
     
-    const clientAccount = data.clients.filter((client)=>{
-        return client.name === name && client.cpf === cpf
-    })
+        const clientToTransf = data.clients.filter((client)=>{
+            return client.name === nameToTransfer && client.cpf === cpfToTransfer
+        })
+    
+        for(let client of clientAccount){
+            client.balance = client.balance - value
+        }
+    
+        for(let client of clientToTransf){
+            client.balance = client.balance + value
+        }
+    
+        res.send(`Valor de ${value} foi debitado do cliente ${clientAccount[0].name} e transferido com sucesso para o cliente ${clientToTransf[0].name}!`)
 
-    const clientToTransf = data.clients.filter((client)=>{
-        return client.name === nameToTransfer && client.cpf === cpfToTransfer
-    })
-
-    for(let client of clientAccount){
-        client.balance = client.balance - value
     }
-
-    for(let client of clientToTransf){
-        client.balance = client.balance + value
+    catch(e:any){
+        if(e.name === "nameNotFound"){res.status(400).send(e.message)}
+        else if(e.name === "cpfNotFound"){res.status(400).send(e.message)}
+        else if(e.name === "nameToTransferNotFound"){res.status(400).send(e.message)}
+        else if(e.name === "cpfToTransferNotFound"){res.status(400).send(e.message)}
+        else if(e.name === "valueNotFound"){res.status(400).send(e.message)}
+        else if(e.name === "clientNotFound"){res.status(400).send(e.message)}
     }
-
-    res.send(`Valor de ${value} foi transferido com sucesso para o cliente ${clientToTransf[0].name}`)
 })
 
 app.post("/client/payment",(req:Request, res:Response)=>{
@@ -199,11 +258,15 @@ app.patch("/clients/addBalance",(req:Request, res:Response)=>{
     })
 
     for(let client of clients){
-        client.balance = client.balance + value
+        client.balance += value
     }
+
+    console.log(clients);
+    
 
     res.send(`O valor de R$: ${value} foi adicionado com sucesso...
     Seu saldo atual é de R$: ${clients[0].balance}`)
+    
 })
 
 app.listen(3003, () => {
