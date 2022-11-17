@@ -18,6 +18,65 @@ export const clients:allTypes.TypeClients[] = [
         balance:50,
         extract:[]
     },
+    { 
+        idAccount: 112233,
+        name: "Diego",
+        cpf: "08298278224" ,
+        birthdayDate: "09/03/1999",
+        balance: 800,
+        extract: [
+          { value: 35,
+            description: "Conta de agua",
+            date: "10/11/2022"
+          },
+          { value: 63.40,
+            description: "Conta de energia",
+            date: "10/11/2022"
+          },
+          { value: 59.90,
+            description: "Internet",  
+            date: "10/11/2022"
+          }
+        ]
+      },
+      { 
+        idAccount: 223311,
+        name: "Emmanuel",
+        cpf: "12345678901",
+        birthdayDate: "22/10/1995",
+        balance: 760,
+        extract: [
+          { value: 44.40,
+            description: "pizza",
+            date: "25/09/2022"
+          },
+          { value: 22,
+            description: "remedios",
+            date: "09/11/2022"
+          }
+        ]
+      },
+      { 
+        idAccount: 332212,
+        name: "Jose",
+        cpf: "02133490145",
+        birthdayDate: "17/12/1990",
+        balance: 560,
+        extract: [
+          { value: 244.27,
+            description: "Compra no mercado",
+            date: "02/11/2022"
+          },
+          { value: 27.50,
+            description: "Gasolina",
+            date: "02/11/2022"
+          },
+          { value: 57,
+            description: "Compra de um short",
+            date: "07/11/2022"
+          }
+        ]
+      },
 ]
 
 // export const extract:allTypes.TypeExtract[] = [
