@@ -9,6 +9,7 @@
 - 🌀 Criar Conta
 - 🌀 Pegar Saldo
 - 🌀 Adicionar Saldo
+- 🌀 Atualizar Saldo
 - 🌀 Pagar Conta
 - 🌀 Transferencia Interna
 
