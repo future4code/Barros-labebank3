@@ -1,17 +1,16 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
 import * as data from "./data"
-import { verifyAge } from "./function";
+import { verifyAge, dateVerify } from "./function";
 import * as allTypes from "./types";
 
 const app = express();
-const regexBR = new RegExp(/^(((0[1-9]|[12]\d|3[01])\/(0[13578]|1[02])\/((19|[2-9]\d)\d{2}))|((0[1-9]|[12]\d|30)\/(0[13456789]|1[012])\/((19|[2-9]\d)\d{2}))|((0[1-9]|1\d|2[0-8])\/02\/((19|[2-9]\d)\d{2}))|(29\/02\/((1[6-9]|[2-9]\d)(0[48]|[2468][048]|[13579][26])|(([1][26]|[2468][048]|[3579][26])00))))$/g);
 
 app.use(express.json());
 app.use(cors());
 
 app.get("/clients",(req:Request, res:Response)=>{
-    res.send(data.clients)
+    res.status(200).send(data.clients)
 })
 
 app.get("/client/balance/cpf/:cpf/name/:name",(req:Request, res:Response)=>{
@@ -37,8 +36,8 @@ app.get("/client/balance/cpf/:cpf/name/:name",(req:Request, res:Response)=>{
     }
 })
 
-let errorCode = 422;
 app.post("/criarConta", (req: Request, res: Response) => {
+    let errorCode = 422;
     try {
       const { name, cpf, birthdayDate } = req.body;
   
@@ -79,7 +78,115 @@ app.post("/criarConta", (req: Request, res: Response) => {
       res.status(errorCode).send(error.message);
     }
 });
+// -- -- -- --  Funcao de pagar uma conta -- -- -- -- //
 
+app.post("/clients/payAccount", (req:Request, res:Response) => {
+    let errorCode = 400;
+    try {
+        const cpf = req.query.cpf as string;
+        const {value, description, date} = req.body;
+        
+        if(!cpf){
+            errorCode = 422;
+            throw new Error("Passe o cpf do usuario no headers");
+        } else if(!value || !description ){
+            errorCode = 422;
+            throw new Error("Informaçoes faltando, por favor, digite o valor e a descrição ");
+        } else if(typeof(value) !== "number"){
+            errorCode = 422;
+            throw new Error("Digite o valor da conta em numeros");
+        };
+    
+        const findClient = data.clients.find( client => client.cpf === cpf);
+        if(!findClient){
+            errorCode = 404;
+            throw new Error("Digite o cpf do usuario ");
+        } else if(findClient.balance < value){
+            errorCode = 409;
+            throw new Error("Saldo insuficiente!")
+        };
+    
+        
+        if(!date || date.length === 0){
+            const {DMA} = dateVerify(""); // DMA abreviação de dia, mes ano, é um array com o dia, mes e ano
+            // se não passar uma data e o saldo da conta for maior do que a conta  o saldo ja é descontado e a conta ja é paga
+            findClient.balance = findClient.balance - value;
+            findClient.extract.push({ value, description, date: `${DMA[0]}/${DMA[1]}/${DMA[2]}` });
+    
+            res.status(201).send(findClient);
+        };
+        
+        const {validDate,codeErr,errorMsg} = dateVerify(date);
+        if(date && validDate){  
+        
+            findClient.extract.push({value, description, date});
+            
+            res.status(201).send(findClient)
+        } else {
+            errorCode = codeErr;
+            throw new Error(errorMsg);
+        };
+    } catch(erro: any){
+      res.status(errorCode).send(erro.message);
+    }
+});
+  
+  
+app.put("/clients/updateBalance", (req:Request, res:Response) => {
+    let errorCode = 400;
+    try {
+        const cpf = req.query.cpf as string;
+        
+        if(!cpf){
+            errorCode = 422;
+            throw new Error("Passe o cpf da Conta Bancaria");
+        };
+        const findClient = data.clients.find( client => client.cpf === cpf);
+        
+        if(!findClient){
+            errorCode = 404;
+            throw new Error(`Conta com o CPF ${cpf} inexistente no banco`);  
+        };
+    
+        const {DMA} = dateVerify("")
+        let indexConta: number = NaN;
+        data.clients.map( (client,index) => { // isso aqui ta encontrando o index da conta
+            client.cpf === cpf? indexConta = index : {}
+        });
+
+        const beforeUpdateBalance = findClient.balance;
+        let payAccountsValue: number = 0;
+        const updateBalane = () => {
+            let updateBa: number = 0; // essa variavel ira receber os valores de todas as contas com a data anterio a hj
+            data.clients[indexConta].extract.map( (extract ) => {
+            let day = Number(extract.date.split("/")[0]);
+            let month = Number(extract.date.split("/")[1]);
+            let year = Number(extract.date.split("/")[2]);
+            if(day > DMA[0] && month >= DMA[1] && year >=  DMA[2]){
+                // faz nada aqui //
+            } else {
+                payAccountsValue = payAccountsValue + extract.value
+                updateBa = updateBa + extract.value;
+            };   
+            });
+            
+            if(findClient.balance >= updateBa) {
+            findClient.balance = findClient.balance - updateBa; // aqui é onde esta atualizando o saldo(Balance)
+            } else {
+            errorCode = 409;
+            throw new Error("Saldo insuficiente!");
+            }
+        };
+        updateBalane();
+        
+        res.status(201).send(`Saldo antigo era de ${beforeUpdateBalance}e o atual é de ${findClient.balance.toFixed(2)},
+        apos atualizar  o valor e descontar ${payAccountsValue} de suas contas antigas`)
+    } catch(erro: any){
+      res.status(errorCode).send(erro.message);
+    }
+});
+
+// -- -- // -- -- // - // -- // -- // -- // -- // - // -- -- //
 app.post("/clients/transfer",(req:Request, res:Response)=>{
     const {name, cpf, nameToTransfer, cpfToTransfer, value} = req.body
     
@@ -102,91 +209,7 @@ app.post("/clients/transfer",(req:Request, res:Response)=>{
     res.send(`Valor de ${value} foi transferido com sucesso para o cliente ${clientToTransf[0].name}`)
 });
 
-app.post("/cliente/pagarConta", (req:Request, res:Response) => {
-    let errorCode = 400;
-    try {
-        const cpf = req.query.cpf as string;
-        const {value, description, date} = req.body;
-        const verificarData = regexBR.test(date);
-        
-        if(!cpf){
-            errorCode = 422;
-            throw new Error("Passe o cpf do usuario no headers");
-        } else if(!value || !description ){
-            errorCode = 422;
-            throw new Error("Informaçoes faltando, por favor, digite o valor e a descrição ");
-        } else if(typeof(value) !== "number"){
-            errorCode = 422;
-            throw new Error("Digite o valor da conta em numeros");
-        };
-    
-        const procurarUsuario = data.clients.find( cliente => cliente.cpf === cpf);
 
-        if(!procurarUsuario){
-            errorCode = 404;
-            throw new Error("Digite o cpf do usuario ");
-        } else if(procurarUsuario.balance < value){
-            errorCode = 423;
-            throw new Error("Saldo insuficiente!")
-        };
-        const dataAtual = new Date()
-        const dia = dataAtual.getDate();
-        const mes = dataAtual.getMonth() + 1;
-        const ano = dataAtual.getFullYear();
-        if(!date || date.length === 0){ // se não passar uma data, o saldo ja é descontado e a conta ja é paga
-            let novoGasto:allTypes.TypeExtract = {
-                value: value,
-                description: description,
-            date: `${dia}/${mes}/${ano}`
-            };
-            data.clients.map( (user) => {
-            if(user.cpf === cpf){
-                let novoSaldo = user.balance - value;
-                user.balance = novoSaldo;
-                user.extract.push(novoGasto)
-            }
-            });
-        } else if(date){
-            const validacaoDeData = () => { 
-            if(!verificarData){ 
-            errorCode = 422;
-            throw new Error("Formato de data incorreto!");
-            } 
-            let d = Number(date.split("/")[0]); // pega o dia da data
-            let m = Number(date.split("/")[1]); // o mes da data
-            let a = Number(date.split("/")[2]); // o ano da data
-            
-            if(a < ano){ // Verificação do ano
-                errorCode = 422;
-                throw new Error("Ano invalido! Passe uma data de hoje em diante")
-            } else if(d < dia && m === mes && a === ano || d < dia && m < mes && a === ano){ // Verificação do dia
-                errorCode = 422;
-                throw new Error("Dia invalido! Passe uma data de hoje em diante") 
-            } else if(d >= dia && m < mes && a === ano){ // Verificação do mes
-                errorCode = 422;
-                throw new Error("Mes invalido! Passe uma data de hoje em diante")
-            } else {
-                let novoGasto:allTypes.TypeExtract = {
-                value: value,
-                description: description,
-                date: date
-                };
-                data.clients.map( (user) => {
-                if(user.cpf === cpf){
-                    user.extract.push(novoGasto)
-                }
-                });
-            }
-            };
-            validacaoDeData();
-            regexBR.test(date);
-        }
-    
-        res.status(201).send(data.clients)
-        } catch(erro: any){
-        res.status(errorCode).send(erro.message);
-        }
-});
 
 app.patch("/clients/addBalance",(req:Request, res:Response)=>{
     const {name, cpf, value} = req.body
@@ -295,3 +318,89 @@ app.listen(3003, () => {
 //     res.send(clients)
     
 // })
+
+// app.post("/cliente/pagarConta", (req:Request, res:Response) => {
+//     let errorCode = 400;
+//     try {
+//         const cpf = req.query.cpf as string;
+//         const {value, description, date} = req.body;
+//         const verificarData = regexBR.test(date);
+        
+//         if(!cpf){
+//             errorCode = 422;
+//             throw new Error("Passe o cpf do usuario no headers");
+//         } else if(!value || !description ){
+//             errorCode = 422;
+//             throw new Error("Informaçoes faltando, por favor, digite o valor e a descrição ");
+//         } else if(typeof(value) !== "number"){
+//             errorCode = 422;
+//             throw new Error("Digite o valor da conta em numeros");
+//         };
+    
+//         const procurarUsuario = data.clients.find( cliente => cliente.cpf === cpf);
+
+//         if(!procurarUsuario){
+//             errorCode = 404;
+//             throw new Error("Digite o cpf do usuario ");
+//         } else if(procurarUsuario.balance < value){
+//             errorCode = 423;
+//             throw new Error("Saldo insuficiente!")
+//         };
+//         const dataAtual = new Date()
+//         const dia = dataAtual.getDate();
+//         const mes = dataAtual.getMonth() + 1;
+//         const ano = dataAtual.getFullYear();
+//         if(!date || date.length === 0){ // se não passar uma data, o saldo ja é descontado e a conta ja é paga
+//             let novoGasto:allTypes.TypeExtract = {
+//                 value: value,
+//                 description: description,
+//             date: `${dia}/${mes}/${ano}`
+//             };
+//             data.clients.map( (user) => {
+//             if(user.cpf === cpf){
+//                 let novoSaldo = user.balance - value;
+//                 user.balance = novoSaldo;
+//                 user.extract.push(novoGasto)
+//             }
+//             });
+//         } else if(date){
+//             const validacaoDeData = () => { 
+//             if(!verificarData){ 
+//             errorCode = 422;
+//             throw new Error("Formato de data incorreto!");
+//             } 
+//             let d = Number(date.split("/")[0]); // pega o dia da data
+//             let m = Number(date.split("/")[1]); // o mes da data
+//             let a = Number(date.split("/")[2]); // o ano da data
+            
+//             if(a < ano){ // Verificação do ano
+//                 errorCode = 422;
+//                 throw new Error("Ano invalido! Passe uma data de hoje em diante")
+//             } else if(d < dia && m === mes && a === ano || d < dia && m < mes && a === ano){ // Verificação do dia
+//                 errorCode = 422;
+//                 throw new Error("Dia invalido! Passe uma data de hoje em diante") 
+//             } else if(d >= dia && m < mes && a === ano){ // Verificação do mes
+//                 errorCode = 422;
+//                 throw new Error("Mes invalido! Passe uma data de hoje em diante")
+//             } else {
+//                 let novoGasto:allTypes.TypeExtract = {
+//                 value: value,
+//                 description: description,
+//                 date: date
+//                 };
+//                 data.clients.map( (user) => {
+//                 if(user.cpf === cpf){
+//                     user.extract.push(novoGasto)
+//                 }
+//                 });
+//             }
+//             };
+//             validacaoDeData();
+//             regexBR.test(date);
+//         }
+    
+//         res.status(201).send(data.clients)
+//         } catch(erro: any){
+//         res.status(errorCode).send(erro.message);
+//         }
+// });
