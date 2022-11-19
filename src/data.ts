@@ -35,7 +35,11 @@ export const clients:allTypes.TypeClients[] = [
           },
           { value: 59.90,
             description: "Internet",  
-            date: "10/11/2022"
+            date: "10/12/2022"
+          },
+          { value: 800,
+            description: "Depósito de dinheiro",
+            date: "10/10/2022"
           }
         ]
       },
@@ -52,7 +56,11 @@ export const clients:allTypes.TypeClients[] = [
           },
           { value: 22,
             description: "remedios",
-            date: "09/11/2022"
+            date: "09/12/2022"
+          },
+          { value: 760,
+            description: "Depósito de dinheiro",
+            date: "09/07/2022"
           }
         ]
       },
@@ -73,77 +81,13 @@ export const clients:allTypes.TypeClients[] = [
           },
           { value: 57,
             description: "Compra de um short",
-            date: "07/11/2022"
+            date: "07/11/2023"
+          },
+          {
+            value: 550,
+            description: "Depósito de dinheiro",
+            date: "15/10/2022"
           }
         ]
       },
 ]
-
-// export const extract:allTypes.TypeExtract[] = [
-        // {
-        //     idClient:111111,
-        //     value:0,
-        //     date:"",
-        //     description:"",
-        // }
-// ]*/
-
-// export const users: user[] = [
-//     {
-//       id: 1,
-//       name: "Vanessa Da Mata",
-//       cpf: "22233344455",
-//       birthdayDate: "02/05/1992",
-//       balance: 555,
-//       statement: [
-//         {
-//           value: 555,
-//           date: "20/04/2022",
-//           description: "Depósito em dinheiro",
-//         },
-//         {
-//           value: 77,
-//           date: "19/05/2021",
-//           description: "Almoço",
-//         },
-//       ],
-//     },
-//     {
-//       id: 2,
-//       name: "Carlos Alberto",
-//       cpf: "66677788899",
-//       birthdayDate: "19/08/1998",
-//       balance: 840,
-//       statement: [
-//         {
-//           value: 840,
-//           date: "22/07/2022",
-//           description: "Depósito em dinheiro",
-//         },
-//         {
-//         value: 55,
-//         date: "19/05/2021",
-//         description: "Conta de celular",
-//       },
-//       ],
-//     },
-//     {
-//         id: 3,
-//         name: "Guilherme Teixeira",
-//         cpf: "99900011122",
-//         birthdayDate: "05/03/2003",
-//         balance: 950,
-//         statement: [
-//           {
-//             value: 950,
-//             date: "29/00/2022",
-//             description: "Depósito em dinheiro",
-//           },
-//           {
-//           value: 250,
-//           date: "19/05/2021",
-//           description: "Loja de roupas",
-//         },
-//         ],
-//       },
-//   ];

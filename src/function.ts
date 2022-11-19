@@ -57,7 +57,7 @@ export const dateVerify = (data:string)  => {
     errorMsg = "Ano invalido!";
   } else if(d < day && m === month && a === year || d < day && m < month && a === year){ // Verificação do dia
     codeErr = 422;
-    errorMsg = "Dia invalido!" ;
+    errorMsg = "Dia invalido! " ;
   } else if(d >= day && m < month && a === year){ // Verificação do mes
     codeErr = 422;
     errorMsg = "Mes invalido!";
