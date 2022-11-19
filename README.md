@@ -3,6 +3,8 @@
 </h1>
 
 ---
+LINK DA DOCUMENTAÇÂO
+https://documenter.getpostman.com/view/22376175/2s8YmSr1Ar
 
 ## 🚧 Requisitos do Projeto
 
@@ -12,6 +14,7 @@
 - 🌀 Atualizar Saldo
 - 🌀 Pagar Conta
 - 🌀 Transferencia Interna
+- 🌀 Exibir Clientes
 
 ---
 ##  🕵Sobre
@@ -33,7 +36,6 @@ Um sistema bancário bem completo para o nosso cliente, feito totalmente em Type
 
 ---
 ##  🧭Status do Projeto
-
- - ⏳ Fazendo
-
+ - Concluido 
+ Documentação: https://documenter.getpostman.com/view/22376175/2s8YmSr1Ar
 ---
